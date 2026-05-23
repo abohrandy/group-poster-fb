@@ -21,7 +21,8 @@ export async function authenticateFacebookProfile(
 
   try {
     console.log(`Navigating to Facebook for profile: ${profileId}`);
-    await page.goto('https://www.facebook.com/', { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto('https://www.facebook.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(3000);
 
     // Check if we are already logged in
     const searchInput = page.locator('input[placeholder*="Search Facebook"]');
@@ -90,7 +91,7 @@ export async function authenticateFacebookProfile(
       successLocator.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'success'),
       checkpointLocator.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'checkpoint'),
       errorLocator.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'error'),
-      page.waitForNavigation({ waitUntil: 'networkidle', timeout: 15000 }).then(() => 'navigated'),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).then(() => 'navigated'),
     ]).catch(() => 'timeout');
 
     if (result === 'success') {

@@ -77,7 +77,8 @@ export async function postAsPage(
   });
 
   try {
-    await page.goto(groupUrl, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(groupUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(5000);
 
     // 1. Verify if we are logged in
     const isLoginRequired = page.url().includes('login') || (await page.locator('input[name="email"]').isVisible().catch(() => false));
@@ -172,7 +173,7 @@ export async function postAsPage(
     const result = await Promise.race([
       feedLocator.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'published'),
       moderationLocator.waitFor({ state: 'visible', timeout: 15000 }).then(() => 'moderation'),
-      page.waitForNavigation({ waitUntil: 'networkidle', timeout: 15000 }).then(() => 'navigated'),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).then(() => 'navigated'),
     ]).catch(() => 'timeout');
 
     if (result === 'published') {

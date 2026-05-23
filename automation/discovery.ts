@@ -52,7 +52,8 @@ export async function discoverGroups(
     // 2. Navigate to Facebook Group Search
     const searchUrl = `https://www.facebook.com/search/groups/?q=${encodeURIComponent(keyword)}`;
     console.log(`Navigating to search page: ${searchUrl}`);
-    await page.goto(searchUrl, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(5000); // Wait for client-side React cards to render
 
     // Check if we are logged in by checking the current URL or search inputs
     const isLoginRequired = page.url().includes('login') || (await page.locator('input[name="email"]').isVisible().catch(() => false));

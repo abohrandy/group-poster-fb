@@ -25,7 +25,8 @@ export async function joinFacebookGroup(
   });
 
   try {
-    await page.goto(groupUrl, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(groupUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(5000);
 
     // Verify if we are logged in
     const isLoginRequired = page.url().includes('login') || (await page.locator('input[name="email"]').isVisible().catch(() => false));
