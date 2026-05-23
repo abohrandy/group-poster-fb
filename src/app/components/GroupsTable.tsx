@@ -2,7 +2,7 @@
 
 import { useTransition, useState } from 'react';
 import { deleteGroupAction, joinGroupAutomationAction } from '@/app/actions/groups';
-import { Trash2, Loader2, ExternalLink, ShieldCheck, ShieldAlert, UserPlus, PenSquare } from 'lucide-react';
+import { Trash2, Loader2, ExternalLink, ShieldCheck, ShieldAlert, UserPlus, PenSquare, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import CreatePostForm from './CreatePostForm';
 
 interface Group {
@@ -31,6 +31,77 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
   const [isPostOpen, setIsPostOpen] = useState(false);
   const [postGroupId, setPostGroupId] = useState('');
   const [postGroupName, setPostGroupName] = useState('');
+
+  // Sort states
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        setSortKey(null);
+      }
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedGroups = [...groups].sort((a, b) => {
+    if (!sortKey) return 0;
+    
+    let aVal = a[sortKey as keyof Group];
+    let bVal = b[sortKey as keyof Group];
+    
+    if (aVal === null || aVal === undefined) aVal = '';
+    if (bVal === null || bVal === undefined) bVal = '';
+    
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      return sortDirection === 'asc' 
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
+    }
+    
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+    }
+    
+    if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
+      return sortDirection === 'asc'
+        ? (aVal ? 1 : 0) - (bVal ? 1 : 0)
+        : (bVal ? 1 : 0) - (aVal ? 1 : 0);
+    }
+    
+    return 0;
+  });
+
+  const renderSortIcon = (key: string) => {
+    if (sortKey !== key) {
+      return <ArrowUpDown className="h-3.5 w-3.5 ml-1 text-gray-500 opacity-40 hover:opacity-100 transition-opacity shrink-0" />;
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="h-3.5 w-3.5 ml-1 text-indigo-400 shrink-0" />
+    ) : (
+      <ArrowDown className="h-3.5 w-3.5 ml-1 text-indigo-400 shrink-0" />
+    );
+  };
+
+  const renderHeader = (label: string, key: string) => {
+    return (
+      <th className="p-4 select-none">
+        <button
+          type="button"
+          onClick={() => handleSort(key)}
+          className="flex items-center gap-0.5 hover:text-white transition-colors uppercase font-semibold text-xs tracking-wider outline-none focus:outline-none"
+        >
+          {label}
+          {renderSortIcon(key)}
+        </button>
+      </th>
+    );
+  };
 
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this group? This will permanently delete its tracking metrics.')) {
@@ -77,18 +148,18 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
       <table className="w-full text-left border-collapse text-sm">
         <thead>
           <tr className="border-b border-gray-800/80 bg-gray-900/30 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            <th className="p-4">Group Name & URL</th>
-            <th className="p-4">Category</th>
-            <th className="p-4">Members</th>
-            <th className="p-4">Location</th>
-            <th className="p-4">Allows Pages</th>
-            <th className="p-4">Status</th>
-            <th className="p-4">Notes</th>
-            <th className="p-4 text-right">Actions</th>
+            {renderHeader('Group Name & URL', 'name')}
+            {renderHeader('Category', 'category')}
+            {renderHeader('Members', 'membersCount')}
+            {renderHeader('Location', 'areaCouncil')}
+            {renderHeader('Allows Pages', 'allowsPages')}
+            {renderHeader('Status', 'status')}
+            {renderHeader('Notes', 'notes')}
+            <th className="p-4 text-right select-none">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-900">
-          {groups.map((group) => (
+          {sortedGroups.map((group) => (
             <tr key={group.id} className="hover:bg-gray-900/20 transition-colors">
               <td className="p-4">
                 <div className="font-bold text-white max-w-[200px] truncate">{group.name}</div>
