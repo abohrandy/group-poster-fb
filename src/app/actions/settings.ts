@@ -105,7 +105,8 @@ export async function authenticateFacebookAction(
           details: `Facebook profile "${profileId}" auth failed: ${result.message}`,
         },
       });
-      return { error: result.message };
+      const errorMsg = result.message + (result.screenshotPath ? ` (A screenshot of the page was saved. View it at: ${result.screenshotPath})` : '');
+      return { error: errorMsg };
     }
   } catch (err: any) {
     console.error('Facebook auth action error:', err);

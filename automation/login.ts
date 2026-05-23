@@ -4,6 +4,7 @@ import { saveSessionState } from './session';
 interface LoginResult {
   success: boolean;
   message: string;
+  screenshotPath?: string;
 }
 
 export async function authenticateFacebookProfile(
@@ -102,15 +103,25 @@ export async function authenticateFacebookProfile(
 
     if (result === 'checkpoint') {
       console.warn('Facebook security checkpoint / 2FA triggered.');
+      const screenshotPath = await takeScreenshotSafe(page, 'fb_login_checkpoint');
       await browser.close();
-      return { success: false, message: 'Security checkpoint triggered. 2FA or identity review is required.' };
+      return { 
+        success: false, 
+        message: 'Security checkpoint triggered. 2FA or identity review is required.',
+        screenshotPath
+      };
     }
 
     if (result === 'error') {
       const errorText = await errorLocator.innerText().catch(() => 'Incorrect credentials entered.');
       console.warn(`Login failed: ${errorText}`);
+      const screenshotPath = await takeScreenshotSafe(page, 'fb_login_error_box');
       await browser.close();
-      return { success: false, message: `Login failed: ${errorText}` };
+      return { 
+        success: false, 
+        message: `Login failed: ${errorText}`,
+        screenshotPath
+      };
     }
 
     // Secondary check: verify URL or search input again
@@ -130,12 +141,47 @@ export async function authenticateFacebookProfile(
     }
 
     console.warn(`Login timed out or landed on unrecognized page. Current URL: ${url}`);
+    const screenshotPath = await takeScreenshotSafe(page, 'fb_login_timeout');
     await browser.close();
-    return { success: false, message: `Authentication timed out or landed on unrecognized page: ${url}` };
+    return { 
+      success: false, 
+      message: `Authentication timed out or landed on unrecognized page: ${url}`,
+      screenshotPath 
+    };
 
   } catch (err: any) {
     console.error('Automated login encountered an error:', err);
+    let screenshotPath;
+    try {
+      if (page) {
+        screenshotPath = await takeScreenshotSafe(page, 'fb_login_error');
+      }
+    } catch (_) {}
     await browser.close().catch(() => {});
-    return { success: false, message: `Automation error: ${err.message || String(err)}` };
+    return { 
+      success: false, 
+      message: `Automation error: ${err.message || String(err)}`,
+      screenshotPath 
+    };
   }
 }
+
+// Safely take screenshot of current page
+async function takeScreenshotSafe(page: any, namePrefix: string): Promise<string | undefined> {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const screenshotsDir = path.join(process.cwd(), 'public', 'screenshots');
+    if (!fs.existsSync(screenshotsDir)) {
+      fs.mkdirSync(screenshotsDir, { recursive: true });
+    }
+    const filename = `${namePrefix}_${Date.now()}.png`;
+    const filePath = path.join(screenshotsDir, filename);
+    await page.screenshot({ path: filePath, timeout: 5000 });
+    return `/screenshots/${filename}`;
+  } catch (err) {
+    console.error('Failed to take screenshot:', err);
+    return undefined;
+  }
+}
+
