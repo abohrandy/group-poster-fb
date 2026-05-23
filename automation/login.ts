@@ -62,7 +62,7 @@ export async function authenticateFacebookProfile(
     }
 
     // Wait for the email input field to appear
-    const emailInput = page.locator('input[name="email"], input#email');
+    const emailInput = page.locator('input[name="email"], input#email').first();
     await emailInput.waitFor({ state: 'visible', timeout: 15000 });
 
     // Enter email with a slight human delay
@@ -70,12 +70,12 @@ export async function authenticateFacebookProfile(
     await page.waitForTimeout(300 + Math.random() * 300);
 
     // Enter password
-    const passInput = page.locator('input[name="pass"], input#pass');
+    const passInput = page.locator('input[name="pass"], input#pass').first();
     await passInput.fill(password);
     await page.waitForTimeout(300 + Math.random() * 300);
 
     // Click Login
-    const loginButton = page.locator('button[name="login"], button[type="submit"], [data-testid="royal_login_button"], button:has-text("Log In"), button:has-text("Log in")');
+    const loginButton = page.locator('button[name="login"], button[type="submit"], [data-testid="royal_login_button"], button:has-text("Log In"), button:has-text("Log in")').first();
     await loginButton.waitFor({ state: 'visible', timeout: 15000 });
     await loginButton.click();
 
