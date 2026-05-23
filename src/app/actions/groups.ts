@@ -3,6 +3,17 @@
 import prisma, { checkDatabaseConnection } from '@/lib/db';
 import { validateSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import os from 'os';
+
+// Detect whether a headed browser can be launched
+// On Linux servers (Railway, Docker), there's no X display
+function canRunHeaded(): boolean {
+  if (os.platform() === 'win32' || os.platform() === 'darwin') {
+    return true; // Windows/Mac desktop always have a display
+  }
+  // On Linux, check if a display server is available
+  return !!process.env.DISPLAY || !!process.env.WAYLAND_DISPLAY;
+}
 
 export async function createGroupAction(prevState: any, formData: FormData): Promise<{ error?: string; success?: string }> {
   const session = await validateSession();
@@ -131,7 +142,9 @@ export async function joinGroupAutomationAction(groupId: string): Promise<{ erro
     }
 
     const { joinFacebookGroup } = await import('../../../automation/join');
-    const result = await joinFacebookGroup('default_profile', group.url, { headless: false });
+    const useHeaded = canRunHeaded();
+    console.log(`Join automation: headless=${!useHeaded} (platform=${os.platform()}, display=${process.env.DISPLAY || 'none'})`);
+    const result = await joinFacebookGroup('default_profile', group.url, { headless: !useHeaded });
 
     if (result.success && result.status !== 'FAILED') {
       await prisma.facebookGroup.update({
@@ -208,7 +221,9 @@ export async function createGroupPostAction(
 
     const pageName = session.user.facebookPageName || "Mayor's Page";
     const { postAsPage } = await import('../../../automation/post');
-    const result = await postAsPage('default_profile', group.url, pageName, content, imagePath, { headless: false });
+    const useHeaded = canRunHeaded();
+    console.log(`Post automation: headless=${!useHeaded} (platform=${os.platform()}, display=${process.env.DISPLAY || 'none'})`);
+    const result = await postAsPage('default_profile', group.url, pageName, content, imagePath, { headless: !useHeaded });
 
     // Update the GroupPost record with the results
     await prisma.groupPost.update({
