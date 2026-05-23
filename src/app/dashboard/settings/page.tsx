@@ -1,6 +1,7 @@
 import { validateSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import SettingsForm from '@/app/components/SettingsForm';
+import { hasSessionState } from '../../../../automation/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,7 @@ export default async function Settings() {
   }
 
   const user = session.user;
+  const hasFacebookSession = hasSessionState('default_profile');
 
   return (
     <div className="space-y-6">
@@ -19,7 +21,12 @@ export default async function Settings() {
         <p className="text-gray-400 text-sm mt-1">Configure your dashboard credentials and monitor platform integrations.</p>
       </div>
 
-      <SettingsForm initialName={user.name} email={user.email} />
+      <SettingsForm 
+        initialName={user.name} 
+        email={user.email} 
+        hasFacebookSession={hasFacebookSession}
+      />
     </div>
   );
 }
+

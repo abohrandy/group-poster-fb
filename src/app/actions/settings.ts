@@ -4,6 +4,8 @@ import prisma from '@/lib/db';
 import { validateSession, hashPassword, verifyPassword } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
+import { authenticateFacebookProfile } from '../../../automation/login';
+
 export async function updateSettingsAction(prevState: any, formData: FormData): Promise<{ error?: string; success?: string }> {
   const session = await validateSession();
   if (!session) {
@@ -65,3 +67,49 @@ export async function updateSettingsAction(prevState: any, formData: FormData): 
     return { error: err.message || 'Failed to update settings.' };
   }
 }
+
+export async function authenticateFacebookAction(
+  prevState: any,
+  formData: FormData
+): Promise<{ error?: string; success?: string }> {
+  const session = await validateSession();
+  if (!session) {
+    return { error: 'Unauthorized: Session expired or invalid.' };
+  }
+
+  const profileId = (formData.get('profileId') as string) || 'default_profile';
+  const email = formData.get('fbEmail') as string;
+  const password = formData.get('fbPassword') as string;
+
+  if (!email || !password) {
+    return { error: 'Facebook Email and Password are required.' };
+  }
+
+  try {
+    const result = await authenticateFacebookProfile(profileId, email, password, true);
+
+    if (result.success) {
+      await prisma.systemLog.create({
+        data: {
+          action: 'FACEBOOK_AUTH_SUCCESS',
+          details: `Facebook profile "${profileId}" authenticated successfully.`,
+        },
+      });
+      revalidatePath('/dashboard/settings');
+      revalidatePath('/dashboard/groups');
+      return { success: result.message };
+    } else {
+      await prisma.systemLog.create({
+        data: {
+          action: 'FACEBOOK_AUTH_FAIL',
+          details: `Facebook profile "${profileId}" auth failed: ${result.message}`,
+        },
+      });
+      return { error: result.message };
+    }
+  } catch (err: any) {
+    console.error('Facebook auth action error:', err);
+    return { error: err.message || 'Automation login runner failed.' };
+  }
+}
+
