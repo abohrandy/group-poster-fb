@@ -36,21 +36,46 @@ export async function authenticateFacebookProfile(
 
     console.log('Not authenticated. Attempting credentials login...');
 
+    // Handle cookie consent banners if present (very common on European/Railway servers)
+    const cookieConsentSelectors = [
+      '[data-testid="cookie-policy-manage-dialog-accept-button"]',
+      'button[data-cookiebanner="accept_button"]',
+      'button:has-text("Allow all cookies")',
+      'button:has-text("Allow essential and optional cookies")',
+      'button:has-text("Accept All")',
+      '[aria-label="Allow all cookies"]',
+      '[aria-label="Accept All"]',
+      'button:has-text("Accept")',
+    ];
+    
+    for (const selector of cookieConsentSelectors) {
+      try {
+        const banner = page.locator(selector);
+        if (await banner.isVisible().catch(() => false)) {
+          console.log(`Cookie banner detected. Clicking accept: ${selector}`);
+          await banner.click({ timeout: 3000 });
+          await page.waitForTimeout(1500);
+          break;
+        }
+      } catch (_) {}
+    }
+
     // Wait for the email input field to appear
     const emailInput = page.locator('input[name="email"], input#email');
-    await emailInput.waitFor({ state: 'visible', timeout: 10000 });
+    await emailInput.waitFor({ state: 'visible', timeout: 15000 });
 
     // Enter email with a slight human delay
     await emailInput.fill(email);
-    await page.waitForTimeout(200 + Math.random() * 300);
+    await page.waitForTimeout(300 + Math.random() * 300);
 
     // Enter password
     const passInput = page.locator('input[name="pass"], input#pass');
     await passInput.fill(password);
-    await page.waitForTimeout(200 + Math.random() * 300);
+    await page.waitForTimeout(300 + Math.random() * 300);
 
     // Click Login
-    const loginButton = page.locator('button[name="login"], button[type="submit"]');
+    const loginButton = page.locator('button[name="login"], button[type="submit"], [data-testid="royal_login_button"], button:has-text("Log In"), button:has-text("Log in")');
+    await loginButton.waitFor({ state: 'visible', timeout: 15000 });
     await loginButton.click();
 
     console.log('Credentials submitted. Waiting for authentication response...');
