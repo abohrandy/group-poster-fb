@@ -1,0 +1,64 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  sessions     Session[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  action    String
+  details   String
+  createdAt DateTime @default(now())
+}
+
+model FacebookGroup {
+  id           String      @id @default(uuid())
+  name         String
+  url          String      @unique
+  membersCount Int         @default(0)
+  areaCouncil  String?
+  allowsPages  Boolean     @default(false)
+  status       String      @default("ACTIVE") // ACTIVE, ARCHIVED, JOIN_PENDING, JOINED, BLACKLISTED
+  category     String?
+  notes        String?
+  posts        GroupPost[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model GroupPost {
+  id             String        @id @default(uuid())
+  groupId        String
+  group          FacebookGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  content        String
+  imagePath      String?
+  status         String        @default("PENDING") // PUBLISHED, FAILED, MODERATION_PENDING
+  errorDetails   String?
+  screenshotPath String?       // Web-accessible path like /screenshots/xxxx.png
+  likesCount     Int           @default(0)
+  commentsCount  Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
