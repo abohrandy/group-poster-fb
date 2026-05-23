@@ -42,6 +42,7 @@ export async function validateSession() {
             id: true,
             email: true,
             name: true,
+            facebookPageName: true,
             createdAt: true,
           },
         },

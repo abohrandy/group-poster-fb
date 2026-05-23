@@ -206,8 +206,9 @@ export async function createGroupPostAction(
       },
     });
 
+    const pageName = session.user.facebookPageName || "Mayor's Page";
     const { postAsPage } = await import('../../../automation/post');
-    const result = await postAsPage('default_profile', group.url, "Mayor's Page", content, imagePath, { headless: false });
+    const result = await postAsPage('default_profile', group.url, pageName, content, imagePath, { headless: false });
 
     // Update the GroupPost record with the results
     await prisma.groupPost.update({

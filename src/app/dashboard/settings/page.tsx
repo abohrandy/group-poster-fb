@@ -23,6 +23,7 @@ export default async function Settings() {
 
       <SettingsForm 
         initialName={user.name} 
+        initialFacebookPageName={user.facebookPageName}
         email={user.email} 
         hasFacebookSession={hasFacebookSession}
       />

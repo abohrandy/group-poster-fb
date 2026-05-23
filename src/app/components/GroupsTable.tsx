@@ -20,9 +20,10 @@ interface Group {
 
 interface GroupsTableProps {
   groups: Group[];
+  facebookPageName?: string;
 }
 
-export default function GroupsTable({ groups }: GroupsTableProps) {
+export default function GroupsTable({ groups, facebookPageName }: GroupsTableProps) {
   const [isPending, startTransition] = useTransition();
   const [activeId, setActiveId] = useState<string | null>(null);
   
@@ -195,6 +196,7 @@ export default function GroupsTable({ groups }: GroupsTableProps) {
         groupName={postGroupName}
         isOpen={isPostOpen}
         onClose={() => setIsPostOpen(false)}
+        facebookPageName={facebookPageName}
       />
     </div>
   );

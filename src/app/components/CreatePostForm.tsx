@@ -10,6 +10,7 @@ interface CreatePostFormProps {
   groupName: string;
   isOpen: boolean;
   onClose: () => void;
+  facebookPageName?: string;
 }
 
 const initialState = {
@@ -17,7 +18,7 @@ const initialState = {
   success: '',
 };
 
-export default function CreatePostForm({ groupId, groupName, isOpen, onClose }: CreatePostFormProps) {
+export default function CreatePostForm({ groupId, groupName, isOpen, onClose, facebookPageName }: CreatePostFormProps) {
   const [content, setContent] = useState('');
   
   // AI caption states
@@ -78,7 +79,7 @@ export default function CreatePostForm({ groupId, groupName, isOpen, onClose }: 
               Write Group Post
             </h3>
             <p className="text-gray-400 text-xs mt-1">
-              Post to <span className="text-indigo-400 font-semibold">{groupName}</span> as Mayor's Page
+              Post to <span className="text-indigo-400 font-semibold">{groupName}</span> as {facebookPageName || "Mayor's Page"}
             </p>
           </div>
           <button

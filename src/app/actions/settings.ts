@@ -13,6 +13,7 @@ export async function updateSettingsAction(prevState: any, formData: FormData): 
   }
 
   const name = formData.get('name') as string;
+  const facebookPageName = formData.get('facebookPageName') as string;
   const currentPassword = formData.get('currentPassword') as string;
   const newPassword = formData.get('newPassword') as string;
 
@@ -25,10 +26,14 @@ export async function updateSettingsAction(prevState: any, formData: FormData): 
       return { error: 'User not found.' };
     }
 
-    const updateData: { name?: string | null; passwordHash?: string } = {};
+    const updateData: { name?: string | null; passwordHash?: string; facebookPageName?: string } = {};
 
     if (name !== undefined) {
       updateData.name = name || null;
+    }
+
+    if (facebookPageName !== undefined) {
+      updateData.facebookPageName = facebookPageName || "Mayor's Page";
     }
 
     if (currentPassword || newPassword) {
