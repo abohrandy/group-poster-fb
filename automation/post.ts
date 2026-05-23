@@ -45,7 +45,7 @@ async function takeScreenshotSafe(page: any): Promise<string | undefined> {
     const screenshotName = `post_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.png`;
     const screenshotFilePath = path.join(screenshotsDir, screenshotName);
     await page.screenshot({ path: screenshotFilePath, timeout: 5000 });
-    return `/screenshots/${screenshotName}`;
+    return `/api/screenshots/${screenshotName}`;
   } catch (err) {
     console.error('Failed to take screenshot:', err);
     return undefined;
