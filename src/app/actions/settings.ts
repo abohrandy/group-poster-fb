@@ -114,3 +114,45 @@ export async function authenticateFacebookAction(
   }
 }
 
+export async function uploadFacebookCookiesAction(
+  prevState: any,
+  formData: FormData
+): Promise<{ error?: string; success?: string }> {
+  const session = await validateSession();
+  if (!session) {
+    return { error: 'Unauthorized: Session expired or invalid.' };
+  }
+
+  const profileId = (formData.get('profileId') as string) || 'default_profile';
+  const cookiesJson = formData.get('cookiesJson') as string;
+
+  if (!cookiesJson) {
+    return { error: 'Cookies JSON content is required.' };
+  }
+
+  try {
+    const parsed = JSON.parse(cookiesJson);
+    if (!parsed.cookies || !Array.isArray(parsed.cookies)) {
+      return { error: 'Invalid cookie structure. The JSON must contain a cookies array.' };
+    }
+
+    const { saveSessionState } = await import('../../../automation/session');
+    await saveSessionState(profileId, parsed);
+
+    await prisma.systemLog.create({
+      data: {
+        action: 'FACEBOOK_COOKIES_UPLOAD',
+        details: `Manually uploaded Facebook cookies for profile "${profileId}".`,
+      },
+    });
+
+    revalidatePath('/dashboard/settings');
+    revalidatePath('/dashboard/groups');
+    return { success: `Successfully uploaded and activated cookies for profile: "${profileId}".` };
+  } catch (err: any) {
+    console.error('Cookies upload action error:', err);
+    return { error: `Invalid JSON format: ${err.message || String(err)}` };
+  }
+}
+
+

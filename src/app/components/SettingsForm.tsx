@@ -1,7 +1,7 @@
 'use client';
 
-import { useActionState } from 'react';
-import { updateSettingsAction, authenticateFacebookAction } from '@/app/actions/settings';
+import { useActionState, useState, useRef } from 'react';
+import { updateSettingsAction, authenticateFacebookAction, uploadFacebookCookiesAction } from '@/app/actions/settings';
 import { 
   User, 
   Lock, 
@@ -13,7 +13,10 @@ import {
   Globe, 
   Mail, 
   Fingerprint,
-  Info
+  Info,
+  Upload,
+  FileJson,
+  Key
 } from 'lucide-react';
 
 interface SettingsFormProps {
@@ -24,10 +27,31 @@ interface SettingsFormProps {
 
 const initialSettingsState: { error?: string; success?: string } = {};
 const initialAuthState: { error?: string; success?: string } = {};
+const initialUploadState: { error?: string; success?: string } = {};
 
 export default function SettingsForm({ initialName, email, hasFacebookSession }: SettingsFormProps) {
   const [settingsState, settingsFormAction, settingsPending] = useActionState(updateSettingsAction, initialSettingsState);
   const [authState, authFormAction, authPending] = useActionState(authenticateFacebookAction, initialAuthState);
+  const [uploadState, uploadFormAction, uploadPending] = useActionState(uploadFacebookCookiesAction, initialUploadState);
+
+  // Toggle between automated login and manual upload
+  const [authMode, setAuthMode] = useState<'CREDENTIALS' | 'UPLOAD'>('CREDENTIALS');
+  const [pastedJson, setPastedJson] = useState('');
+  const [fileName, setFileName] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setPastedJson(content);
+    };
+    reader.readAsText(file);
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -163,101 +187,229 @@ export default function SettingsForm({ initialName, email, hasFacebookSession }:
           )}
         </div>
 
-        {/* Warning instructions info block */}
-        <div className="p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 flex gap-3 items-start">
-          <Info className="h-4.5 w-4.5 text-indigo-400 shrink-0 mt-0.5" />
-          <div className="text-xs text-indigo-300/80 leading-relaxed">
-            <span className="font-semibold text-indigo-300 block mb-1">Stealth Session Authentication</span>
-            This form launches a headless, fully-stealthed Playwright browser on the server, inputs the credentials, bypasses browser detection, and saves your cookies payload to disk. 
-            <span className="block mt-2 font-medium text-indigo-200">
-              Note: If Facebook displays a 2FA checkpoint or mobile device authorization gate, please approve the login prompt immediately on your phone when starting.
-            </span>
-          </div>
+        {/* Tab Controls */}
+        <div className="flex border-b border-gray-900">
+          <button
+            onClick={() => setAuthMode('CREDENTIALS')}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+              authMode === 'CREDENTIALS'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <Key className="h-3.5 w-3.5" />
+            Automated Login
+          </button>
+          <button
+            onClick={() => setAuthMode('UPLOAD')}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+              authMode === 'UPLOAD'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Upload Cookie JSON
+          </button>
         </div>
 
-        <form action={authFormAction} className="space-y-4">
-          {authState?.error && (
-            <div className="flex items-center gap-2 text-rose-400 bg-rose-500/5 border border-rose-500/20 p-4 rounded-lg text-sm">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span>{authState.error}</span>
+        {authMode === 'CREDENTIALS' ? (
+          /* Sub-panel A: Automated credentials login */
+          <div className="space-y-4">
+            <div className="p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 flex gap-3 items-start">
+              <Info className="h-4.5 w-4.5 text-indigo-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-indigo-300/80 leading-relaxed">
+                <span className="font-semibold text-indigo-300 block mb-1">Stealth Session Authentication</span>
+                This form launches a headless browser on the Railway server, inputs the credentials, bypasses browser detection, and saves your cookies payload.
+                <span className="block mt-2 font-medium text-indigo-200">
+                  If this times out due to Facebook security validations, use the "Upload Cookie JSON" tab to log in headed locally on your computer and upload the session file.
+                </span>
+              </div>
             </div>
-          )}
 
-          {authState?.success && (
-            <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-lg text-sm">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span>{authState.success}</span>
-            </div>
-          )}
+            <form action={authFormAction} className="space-y-4">
+              {authState?.error && (
+                <div className="flex flex-col gap-2 text-rose-400 bg-rose-500/5 border border-rose-500/20 p-4 rounded-lg text-sm">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span className="font-medium break-all">{authState.error}</span>
+                  </div>
+                </div>
+              )}
 
-          {/* Profile Selector ID */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Scraper Profile Identifier</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-                <Fingerprint className="h-4 w-4" />
-              </span>
-              <input
-                type="text"
-                name="profileId"
-                defaultValue="default_profile"
-                placeholder="default_profile"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm font-sans"
-              />
-            </div>
-            <p className="text-[10px] text-gray-500 mt-1">Keep as default_profile to sync with group crawler queries</p>
+              {authState?.success && (
+                <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-lg text-sm">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>{authState.success}</span>
+                </div>
+              )}
+
+              {/* Profile Selector ID */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Scraper Profile Identifier</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+                    <Fingerprint className="h-4 w-4" />
+                  </span>
+                  <input
+                    type="text"
+                    name="profileId"
+                    defaultValue="default_profile"
+                    placeholder="default_profile"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm font-sans"
+                  />
+                </div>
+              </div>
+
+              {/* Facebook Email */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Facebook Account Email / Phone</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+                    <Mail className="h-4 w-4" />
+                  </span>
+                  <input
+                    type="text"
+                    name="fbEmail"
+                    required
+                    placeholder="name@example.com"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm font-sans"
+                  />
+                </div>
+              </div>
+
+              {/* Facebook Password */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Facebook Account Password</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+                    <Lock className="h-4 w-4" />
+                  </span>
+                  <input
+                    type="password"
+                    name="fbPassword"
+                    required
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm font-sans"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={authPending}
+                className="w-full mt-2 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg text-sm transition-all duration-300 shadow-lg shadow-indigo-500/10 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {authPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Running Playwright Auth...
+                  </>
+                ) : (
+                  <>
+                    <Globe className="h-4 w-4" /> Authenticate Profile
+                  </>
+                )}
+              </button>
+            </form>
           </div>
-
-          {/* Facebook Email */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Facebook Account Email / Phone</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-                <Mail className="h-4 w-4" />
-              </span>
-              <input
-                type="text"
-                name="fbEmail"
-                required
-                placeholder="name@example.com"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm font-sans"
-              />
+        ) : (
+          /* Sub-panel B: Manual Cookie JSON File Upload */
+          <div className="space-y-4">
+            <div className="p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 flex gap-3 items-start">
+              <Upload className="h-4.5 w-4.5 text-indigo-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-indigo-300/80 leading-relaxed">
+                <span className="font-semibold text-indigo-300 block mb-1">Headed Local Login Bypass</span>
+                1. Open a local terminal in the project directory: `c:\Work\SHRC\Faecbook App - Copy`.
+                <br />
+                2. Run `node scripts/login-local.js` to open a headed browser, log in manually, and save the session.
+                <br />
+                3. Select the generated `automation/cookies/default_profile.json` file below to upload and activate it.
+              </div>
             </div>
-          </div>
 
-          {/* Facebook Password */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Facebook Account Password</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-                <Lock className="h-4 w-4" />
-              </span>
-              <input
-                type="password"
-                name="fbPassword"
-                required
-                placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm font-sans"
-              />
-            </div>
-          </div>
+            <form action={uploadFormAction} className="space-y-4">
+              {uploadState?.error && (
+                <div className="flex items-center gap-2 text-rose-400 bg-rose-500/5 border border-rose-500/20 p-4 rounded-lg text-sm">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>{uploadState.error}</span>
+                </div>
+              )}
 
-          <button
-            type="submit"
-            disabled={authPending}
-            className="w-full mt-2 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg text-sm transition-all duration-300 shadow-lg shadow-indigo-500/10 flex items-center justify-center gap-2 cursor-pointer"
-          >
-            {authPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Running Playwright Auth...
-              </>
-            ) : (
-              <>
-                <Globe className="h-4 w-4" /> Authenticate Profile
-              </>
-            )}
-          </button>
-        </form>
+              {uploadState?.success && (
+                <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-lg text-sm">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>{uploadState.success}</span>
+                </div>
+              )}
+
+              {/* Profile Selector ID */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Scraper Profile Identifier</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+                    <Fingerprint className="h-4 w-4" />
+                  </span>
+                  <input
+                    type="text"
+                    name="profileId"
+                    defaultValue="default_profile"
+                    placeholder="default_profile"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm font-sans"
+                  />
+                </div>
+              </div>
+
+              {/* File Upload Selector */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Session Cookie File (.json)</label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".json"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full px-4 py-3 bg-gray-950/50 border border-gray-800 hover:border-indigo-500/50 rounded-lg text-sm text-gray-400 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer border-dashed"
+                >
+                  <FileJson className="h-4 w-4 text-indigo-400" />
+                  {fileName ? `Selected: ${fileName}` : 'Choose cookies JSON file...'}
+                </button>
+              </div>
+
+              {/* Hidden text area to submit JSON text */}
+              <input type="hidden" name="cookiesJson" value={pastedJson} />
+
+              {/* Text Area JSON visual preview */}
+              {pastedJson && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">JSON Content Preview</label>
+                  <div className="w-full h-24 p-3 bg-gray-950/80 border border-gray-900 rounded-lg text-[10px] font-mono text-gray-400 overflow-y-auto select-none">
+                    {pastedJson.substring(0, 1000)}...
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={uploadPending || !pastedJson}
+                className="w-full mt-2 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg text-sm transition-all duration-300 shadow-lg shadow-indigo-500/10 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {uploadPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Uploading Session...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4" /> Upload Cookies
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
     </div>
