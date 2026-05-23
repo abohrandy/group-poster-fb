@@ -152,15 +152,19 @@ export async function authenticateFacebookProfile(
   } catch (err: any) {
     console.error('Automated login encountered an error:', err);
     let screenshotPath;
+    let currentUrl = 'unknown';
+    let currentTitle = 'unknown';
     try {
       if (page) {
+        currentUrl = page.url();
+        currentTitle = await page.title().catch(() => 'unknown');
         screenshotPath = await takeScreenshotSafe(page, 'fb_login_error');
       }
     } catch (_) {}
     await browser.close().catch(() => {});
     return { 
       success: false, 
-      message: `Automation error: ${err.message || String(err)}`,
+      message: `Automation error at URL "${currentUrl}" (Title: "${currentTitle}"): ${err.message || String(err)}`,
       screenshotPath 
     };
   }
