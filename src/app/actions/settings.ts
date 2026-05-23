@@ -36,9 +36,9 @@ export async function updateSettingsAction(prevState: any, formData: FormData): 
       updateData.facebookPageName = facebookPageName || "Mayor's Page";
     }
 
-    if (currentPassword || newPassword) {
-      if (!currentPassword || !newPassword) {
-        return { error: 'Both current password and new password are required to change password.' };
+    if (newPassword) {
+      if (!currentPassword) {
+        return { error: 'Current password is required to change password.' };
       }
 
       if (newPassword.length < 6) {
