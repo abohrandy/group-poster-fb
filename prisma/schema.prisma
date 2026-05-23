@@ -39,6 +39,7 @@ model FacebookGroup {
   name         String
   url          String      @unique
   membersCount Int         @default(0)
+  dailyPosts   Int         @default(0)
   areaCouncil  String?
   allowsPages  Boolean     @default(false)
   status       String      @default("ACTIVE") // ACTIVE, ARCHIVED, JOIN_PENDING, JOINED, BLACKLISTED

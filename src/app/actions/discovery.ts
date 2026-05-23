@@ -33,11 +33,13 @@ export async function runDiscoveryAction(prevState: any, formData: FormData): Pr
         name: `Automated Discovery: ${keyword} Community`,
         url: `https://facebook.com/groups/auto_${cleanedKeyword}`,
         membersCount: Math.round(1500 + Math.random() * 8000),
+        dailyPosts: Math.round(1 + Math.random() * 12),
       },
       {
         name: `Global ${keyword} Networking Forum`,
         url: `https://facebook.com/groups/global_${cleanedKeyword}`,
         membersCount: Math.round(5000 + Math.random() * 15000),
+        dailyPosts: Math.round(2 + Math.random() * 20),
       },
     ];
 

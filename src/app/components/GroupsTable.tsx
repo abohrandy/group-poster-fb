@@ -2,7 +2,7 @@
 
 import { useTransition, useState } from 'react';
 import { deleteGroupAction, joinGroupAutomationAction } from '@/app/actions/groups';
-import { Trash2, Loader2, ExternalLink, ShieldCheck, ShieldAlert, UserPlus, PenSquare, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Trash2, Loader2, ExternalLink, ShieldCheck, ShieldAlert, UserPlus, PenSquare, ArrowUpDown, ArrowUp, ArrowDown, Flame, Activity } from 'lucide-react';
 import CreatePostForm from './CreatePostForm';
 
 interface Group {
@@ -10,6 +10,7 @@ interface Group {
   name: string;
   url: string;
   membersCount: number;
+  dailyPosts: number;
   areaCouncil: string | null;
   allowsPages: boolean;
   status: string;
@@ -151,6 +152,7 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
             {renderHeader('Group Name & URL', 'name')}
             {renderHeader('Category', 'category')}
             {renderHeader('Members', 'membersCount')}
+            {renderHeader('Daily Posts', 'dailyPosts')}
             {renderHeader('Location', 'areaCouncil')}
             {renderHeader('Allows Pages', 'allowsPages')}
             {renderHeader('Status', 'status')}
@@ -183,6 +185,26 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
               </td>
               <td className="p-4 font-mono font-medium text-gray-200">
                 {new Intl.NumberFormat().format(group.membersCount)}
+              </td>
+              <td className="p-4">
+                {group.dailyPosts > 0 ? (
+                  <span className={`inline-flex items-center gap-1.5 font-mono font-medium text-sm ${
+                    group.dailyPosts >= 10
+                      ? 'text-orange-400'
+                      : group.dailyPosts >= 3
+                      ? 'text-amber-400'
+                      : 'text-gray-400'
+                  }`}>
+                    {group.dailyPosts >= 10 ? (
+                      <Flame className="h-3.5 w-3.5 shrink-0" />
+                    ) : group.dailyPosts >= 3 ? (
+                      <Activity className="h-3.5 w-3.5 shrink-0" />
+                    ) : null}
+                    {group.dailyPosts}/day
+                  </span>
+                ) : (
+                  <span className="text-gray-600 text-xs">—</span>
+                )}
               </td>
               <td className="p-4 text-gray-300">
                 {group.areaCouncil || <span className="text-gray-600">—</span>}

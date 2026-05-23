@@ -7,7 +7,7 @@ import { Search, Loader2, CheckCircle2, AlertTriangle, Shield, Globe } from 'luc
 const initialState = {
   error: '',
   success: '',
-  groups: [] as Array<{ name: string; url: string; membersCount: number }>,
+  groups: [] as Array<{ name: string; url: string; membersCount: number; dailyPosts: number }>,
 };
 
 export default function AutomatedSearchForm() {
@@ -48,8 +48,11 @@ export default function AutomatedSearchForm() {
                 </div>
                 {state.groups.map((group, index) => (
                   <div key={index} className="flex justify-between items-center text-gray-200">
-                    <span className="truncate max-w-[280px] font-medium" title={group.name}>{group.name}</span>
-                    <span className="text-indigo-400 font-mono text-[10px]">+{group.membersCount.toLocaleString()} members</span>
+                    <span className="truncate max-w-[200px] font-medium" title={group.name}>{group.name}</span>
+                    <span className="text-indigo-400 font-mono text-[10px] whitespace-nowrap">
+                      {group.membersCount.toLocaleString()} members
+                      {group.dailyPosts > 0 && ` · ${group.dailyPosts}/day`}
+                    </span>
                   </div>
                 ))}
               </div>

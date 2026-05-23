@@ -6,24 +6,37 @@ interface DiscoveredGroupResult {
   name: string;
   url: string;
   membersCount: number;
+  dailyPosts: number;
 }
 
-// Helper to parse member count text into clean integer
+// Helper to parse member count text like "12.4K members" or "835 members" into a clean integer
 function parseMemberCount(text: string): number {
   if (!text) return 0;
-  const match = text.match(/([0-9.,]+)\s*([KM]?)/i);
-  if (!match) return 0;
-  
-  let num = parseFloat(match[1].replace(/,/g, ''));
-  const multiplier = match[2].toUpperCase();
-  
-  if (multiplier === 'K') {
-    num *= 1000;
-  } else if (multiplier === 'M') {
-    num *= 1000000;
+  // Match a number optionally followed by K or M, but NOT followed by 'e' (to avoid matching 'm' in 'members')
+  const match = text.match(/([0-9.,]+)\s*([KM])(?!e)/i);
+  if (match) {
+    let num = parseFloat(match[1].replace(/,/g, ''));
+    const multiplier = match[2].toUpperCase();
+    if (multiplier === 'K') num *= 1000;
+    else if (multiplier === 'M') num *= 1000000;
+    return Math.round(num);
   }
   
-  return Math.round(num);
+  // No K/M suffix — just a plain number like "835 members"
+  const plainMatch = text.match(/([0-9.,]+)/);
+  if (plainMatch) {
+    return Math.round(parseFloat(plainMatch[1].replace(/,/g, '')));
+  }
+  return 0;
+}
+
+// Helper to parse daily post count text like "3 posts a day" or "10+ posts/day"
+function parseDailyPosts(text: string): number {
+  if (!text) return 0;
+  // Match patterns like "X posts a day", "X+ posts a day", "X new posts a day", "X posts/day"
+  const match = text.match(/([0-9.,]+)\+?\s*(?:new\s+)?posts?\s*(?:a|per|\/|each)\s*day/i);
+  if (!match) return 0;
+  return Math.round(parseFloat(match[1].replace(/,/g, '')));
 }
 
 export async function discoverGroups(
@@ -80,7 +93,7 @@ export async function discoverGroups(
     // 4. Parse group search results from DOM
     console.log('Extracting group result cards...');
     const rawGroups = await page.evaluate(() => {
-      const results: Array<{ name: string; url: string; memberText: string }> = [];
+      const results: Array<{ name: string; url: string; memberText: string; postsText: string }> = [];
       const links = Array.from(document.querySelectorAll('a[href*="/groups/"]'));
 
       for (const link of links) {
@@ -108,11 +121,15 @@ export async function discoverGroups(
         if (card) {
           const name = link.textContent?.trim() || '';
           const text = card.textContent || '';
-          const match = text.match(/([0-9.,]+\s*[KM]?)\s*members/i);
-          const memberText = match ? match[0] : '';
+          const memberMatch = text.match(/([0-9.,]+\s*[KM]?)\s*members/i);
+          const memberText = memberMatch ? memberMatch[0] : '';
+          
+          // Extract daily post count (e.g. "3 posts a day", "10+ new posts a day")
+          const postsMatch = text.match(/[0-9.,]+\+?\s*(?:new\s+)?posts?\s*(?:a|per|\/|each)\s*day/i);
+          const postsText = postsMatch ? postsMatch[0] : '';
 
           if (name && cleanUrl && !results.some((r) => r.url === cleanUrl)) {
-            results.push({ name, url: cleanUrl, memberText });
+            results.push({ name, url: cleanUrl, memberText, postsText });
           }
         }
       }
@@ -125,10 +142,12 @@ export async function discoverGroups(
     // 5. Save to database with sequential rate-limiting delays
     for (const raw of rawGroups) {
       const membersCount = parseMemberCount(raw.memberText);
+      const dailyPosts = parseDailyPosts(raw.postsText);
       const groupData = {
         name: raw.name,
         url: raw.url,
         membersCount,
+        dailyPosts,
       };
 
       try {
@@ -138,17 +157,19 @@ export async function discoverGroups(
           update: {
             name: raw.name,
             membersCount,
+            dailyPosts,
           },
           create: {
             name: raw.name,
             url: raw.url,
             membersCount,
+            dailyPosts,
             status: 'ACTIVE',
           },
         });
 
         parsedGroups.push(groupData);
-        console.log(`Database sync: ${raw.name} (${membersCount} members)`);
+        console.log(`Database sync: ${raw.name} (${membersCount} members, ~${dailyPosts} posts/day)`);
       } catch (dbErr) {
         console.error(`Failed to upsert group ${raw.name} in DB:`, dbErr);
       }
