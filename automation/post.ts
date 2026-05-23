@@ -60,7 +60,7 @@ export async function postAsPage(
   imagePath?: string,
   options: { headless?: boolean } = {}
 ): Promise<PostResult> {
-  if (!hasSessionState(profileId)) {
+  if (!await hasSessionState(profileId)) {
     return {
       success: false,
       status: 'FAILED',

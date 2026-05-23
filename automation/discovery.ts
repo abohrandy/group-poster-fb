@@ -32,7 +32,7 @@ export async function discoverGroups(
   options: { maxScrolls?: number; headless?: boolean } = {}
 ): Promise<{ success: boolean; message: string; groups?: DiscoveredGroupResult[] }> {
   // 1. Verify that profile session cookies exist
-  if (!hasSessionState(profileId)) {
+  if (!await hasSessionState(profileId)) {
     return {
       success: false,
       message: `Profile cookies for "${profileId}" are missing. Please authenticate via the login manager first.`,

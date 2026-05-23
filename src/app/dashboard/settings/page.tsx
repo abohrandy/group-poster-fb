@@ -12,7 +12,7 @@ export default async function Settings() {
   }
 
   const user = session.user;
-  const hasFacebookSession = hasSessionState('default_profile');
+  const hasFacebookSession = await hasSessionState('default_profile');
 
   return (
     <div className="space-y-6">

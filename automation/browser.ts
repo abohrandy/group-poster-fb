@@ -39,7 +39,7 @@ export async function launchBrowser(options: LaunchOptions = {}): Promise<Launch
   };
 
   // If profileId is specified and cookies exist, load them
-  if (options.profileId && hasSessionState(options.profileId)) {
+  if (options.profileId && await hasSessionState(options.profileId)) {
     contextOptions.storageState = getCookiesPath(options.profileId);
   }
 

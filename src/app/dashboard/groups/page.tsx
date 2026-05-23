@@ -162,7 +162,7 @@ export default async function GroupsPage({
       <GroupFilters categories={categories} statuses={statuses} />
 
       {/* List Table */}
-      <GroupsTable groups={groups} />
+      <GroupsTable groups={groups} facebookPageName={session?.user?.facebookPageName || "Mayor's Page"} />
     </div>
   );
 }

@@ -7,7 +7,7 @@ export async function joinFacebookGroup(
   options: { headless?: boolean } = {}
 ): Promise<{ success: boolean; status: 'JOINED' | 'JOIN_PENDING' | 'FAILED'; message: string }> {
   
-  if (!hasSessionState(profileId)) {
+  if (!await hasSessionState(profileId)) {
     return {
       success: false,
       status: 'FAILED',
