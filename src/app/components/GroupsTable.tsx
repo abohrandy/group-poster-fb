@@ -235,8 +235,30 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
                   {group.status}
                 </span>
               </td>
-              <td className="p-4 text-gray-400 text-xs max-w-[150px] truncate" title={group.notes || ''}>
-                {group.notes || <span className="text-gray-600">—</span>}
+              <td className="p-4 text-gray-400 text-xs max-w-[200px]" title={group.notes || ''}>
+                {group.notes ? (
+                  (() => {
+                    const match = group.notes.match(/(.*)\(Screenshot: ([^\)]+)\)/);
+                    if (match) {
+                      return (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="truncate block max-w-[180px]">{match[1].trim()}</span>
+                          <a
+                            href={match[2]}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-indigo-400 hover:text-indigo-300 font-semibold underline text-[10px] inline-flex items-center gap-0.5"
+                          >
+                            View Screenshot
+                          </a>
+                        </div>
+                      );
+                    }
+                    return <span className="truncate block max-w-[180px]">{group.notes}</span>;
+                  })()
+                ) : (
+                  <span className="text-gray-600">—</span>
+                )}
               </td>
               <td className="p-4 text-right">
                 <div className="flex items-center justify-end gap-1.5">

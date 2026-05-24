@@ -149,7 +149,10 @@ export async function joinGroupAutomationAction(groupId: string): Promise<{ erro
     if (result.success && result.status !== 'FAILED') {
       await prisma.facebookGroup.update({
         where: { id: groupId },
-        data: { status: result.status },
+        data: { 
+          status: result.status,
+          notes: `Join attempt succeeded: ${result.message}`
+        },
       });
 
       await prisma.systemLog.create({
@@ -165,6 +168,22 @@ export async function joinGroupAutomationAction(groupId: string): Promise<{ erro
         status: result.status,
       };
     } else {
+      const notesMsg = `Join failed: ${result.message}${result.screenshotPath ? ` (Screenshot: ${result.screenshotPath})` : ''}`;
+      await prisma.facebookGroup.update({
+        where: { id: groupId },
+        data: { 
+          notes: notesMsg.substring(0, 500)
+        },
+      });
+
+      await prisma.systemLog.create({
+        data: {
+          action: 'GROUP_JOIN_FAILED',
+          details: `Automation join failed for: ${group.name}. Error: ${result.message}. Screenshot: ${result.screenshotPath || 'None'}`,
+        },
+      });
+
+      revalidatePath('/dashboard/groups');
       return { error: result.message };
     }
   } catch (err: any) {

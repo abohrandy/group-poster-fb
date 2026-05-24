@@ -1,11 +1,30 @@
 import { launchBrowser } from './browser';
 import { hasSessionState } from './session';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Safely capture a screenshot of the current page and save it to public/screenshots/
+async function takeScreenshotSafe(page: any): Promise<string | undefined> {
+  try {
+    const screenshotsDir = path.join(process.cwd(), 'public', 'screenshots');
+    if (!fs.existsSync(screenshotsDir)) {
+      fs.mkdirSync(screenshotsDir, { recursive: true });
+    }
+    const screenshotName = `join_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.png`;
+    const screenshotFilePath = path.join(screenshotsDir, screenshotName);
+    await page.screenshot({ path: screenshotFilePath, timeout: 5000 });
+    return `/api/screenshots/${screenshotName}`;
+  } catch (err) {
+    console.error('Failed to take screenshot:', err);
+    return undefined;
+  }
+}
 
 export async function joinFacebookGroup(
   profileId: string,
   groupUrl: string,
   options: { headless?: boolean } = {}
-): Promise<{ success: boolean; status: 'JOINED' | 'JOIN_PENDING' | 'FAILED'; message: string }> {
+): Promise<{ success: boolean; status: 'JOINED' | 'JOIN_PENDING' | 'FAILED'; message: string; screenshotPath?: string }> {
   
   if (!await hasSessionState(profileId)) {
     return {
@@ -31,18 +50,36 @@ export async function joinFacebookGroup(
     // Verify if we are logged in
     const isLoginRequired = page.url().includes('login') || (await page.locator('input[name="email"]').isVisible().catch(() => false));
     if (isLoginRequired) {
+      const screenshotPath = await takeScreenshotSafe(page);
       await browser.close();
       return {
         success: false,
         status: 'FAILED',
         message: 'Facebook session has expired. Please log in again to refresh cookies.',
+        screenshotPath,
       };
     }
 
     // Check if already joined or requested
     const joinedButton = page.locator('button:has-text("Joined"), button:has-text("Leave Group"), button:has-text("Manage Group")');
     const pendingButton = page.locator('button:has-text("Cancel Request"), button:has-text("Requested")');
-    const joinButton = page.locator('button:has-text("Join Group"), [role="button"]:has-text("Join Group")');
+    
+    // Robust selectors matching diverse button styles, text contents, and casing variants (excluding "Joined")
+    const joinButton = page.locator([
+      'button:has-text("Join Group")',
+      'button:has-text("Join group")',
+      'button:has-text("Request to Join")',
+      'button:has-text("Request to join")',
+      'button:text("Join")',
+      'button:text("join")',
+      '[role="button"]:has-text("Join Group")',
+      '[role="button"]:has-text("Join group")',
+      '[role="button"]:has-text("Request to Join")',
+      '[role="button"]:has-text("Request to join")',
+      '[role="button"]:text("Join")',
+      '[aria-label*="Join group" i]',
+      '[aria-label*="Join Group" i]'
+    ].join(', '));
 
     if (await joinedButton.isVisible().catch(() => false)) {
       console.log('Already joined this group.');
@@ -57,11 +94,13 @@ export async function joinFacebookGroup(
     }
 
     if (!(await joinButton.isVisible().catch(() => false))) {
+      const screenshotPath = await takeScreenshotSafe(page);
       await browser.close();
       return {
         success: false,
         status: 'FAILED',
         message: 'Could not find a valid "Join Group" button on the page. Private/restricted group?',
+        screenshotPath,
       };
     }
 
@@ -119,21 +158,25 @@ export async function joinFacebookGroup(
 
         if (!modalStillOpen && !isJoined && !isPending) {
           console.warn('Operator closed the questions modal without submitting.');
+          const screenshotPath = await takeScreenshotSafe(page);
           await browser.close();
           return {
             success: false,
             status: 'FAILED',
             message: 'Join modal was closed without submission.',
+            screenshotPath,
           };
         }
       }
 
       if (!verified) {
+        const screenshotPath = await takeScreenshotSafe(page);
         await browser.close();
         return {
           success: false,
           status: 'FAILED',
           message: 'Timed out waiting for operator to answer membership questions.',
+          screenshotPath,
         };
       }
     } else {
@@ -150,11 +193,13 @@ export async function joinFacebookGroup(
         console.log('Join request submitted. Awaiting admin approval.');
       } else {
         console.warn('Failed to verify join request state change.');
+        const screenshotPath = await takeScreenshotSafe(page);
         await browser.close();
         return {
           success: false,
           status: 'FAILED',
           message: 'Clicked Join but button state did not transition. Verification failed.',
+          screenshotPath,
         };
       }
     }
@@ -170,11 +215,17 @@ export async function joinFacebookGroup(
 
   } catch (err: any) {
     console.error('Join group automation error:', err);
+    let screenshotPath: string | undefined;
+    try {
+      screenshotPath = await takeScreenshotSafe(page);
+    } catch {}
     await browser.close().catch(() => {});
     return {
       success: false,
       status: 'FAILED',
       message: `Automation error: ${err.message || String(err)}`,
+      screenshotPath,
     };
   }
 }
+
