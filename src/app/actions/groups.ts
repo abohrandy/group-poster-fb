@@ -24,10 +24,8 @@ export async function createGroupAction(prevState: any, formData: FormData): Pro
   const name = formData.get('name') as string;
   const url = formData.get('url') as string;
   const membersCountStr = formData.get('membersCount') as string;
-  const areaCouncil = formData.get('areaCouncil') as string;
   const allowsPages = formData.get('allowsPages') === 'true';
   const status = formData.get('status') as string;
-  const category = formData.get('category') as string;
   const notes = formData.get('notes') as string;
 
   if (!name || !url) {
@@ -60,10 +58,8 @@ export async function createGroupAction(prevState: any, formData: FormData): Pro
         name,
         url,
         membersCount,
-        areaCouncil: areaCouncil || null,
         allowsPages,
-        status: status || 'ACTIVE',
-        category: category || null,
+        status: status || 'NOT_JOINED',
         notes: notes || null,
       },
     });
@@ -261,6 +257,7 @@ export async function createGroupPostAction(
         where: { id: groupId },
         data: {
           notes: `Last page post status: ${result.status} on ${new Date().toLocaleString()}`,
+          allowsPages: result.allowsPages ?? group.allowsPages,
         },
       });
 
@@ -278,6 +275,14 @@ export async function createGroupPostAction(
         status: result.status,
       };
     } else {
+      if (result.allowsPages !== undefined) {
+        await prisma.facebookGroup.update({
+          where: { id: groupId },
+          data: {
+            allowsPages: result.allowsPages,
+          },
+        });
+      }
       return { error: result.message };
     }
   } catch (err: any) {

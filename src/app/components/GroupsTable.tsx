@@ -11,10 +11,8 @@ interface Group {
   url: string;
   membersCount: number;
   dailyPosts: number;
-  areaCouncil: string | null;
   allowsPages: boolean;
   status: string;
-  category: string | null;
   notes: string | null;
   createdAt: Date;
 }
@@ -150,10 +148,8 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
         <thead>
           <tr className="border-b border-gray-800/80 bg-gray-900/30 text-xs font-semibold text-gray-400 uppercase tracking-wider">
             {renderHeader('Group Name & URL', 'name')}
-            {renderHeader('Category', 'category')}
             {renderHeader('Members', 'membersCount')}
             {renderHeader('Daily Posts', 'dailyPosts')}
-            {renderHeader('Location', 'areaCouncil')}
             {renderHeader('Allows Pages', 'allowsPages')}
             {renderHeader('Status', 'status')}
             {renderHeader('Notes', 'notes')}
@@ -173,15 +169,6 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
                 >
                   Visit Group <ExternalLink className="h-3 w-3" />
                 </a>
-              </td>
-              <td className="p-4">
-                {group.category ? (
-                  <span className="px-2.5 py-0.5 rounded-full bg-gray-800/60 text-gray-300 text-[10px] font-medium border border-gray-700/60">
-                    {group.category}
-                  </span>
-                ) : (
-                  <span className="text-gray-600 text-xs">—</span>
-                )}
               </td>
               <td className="p-4 font-mono font-medium text-gray-200">
                 {new Intl.NumberFormat().format(group.membersCount)}
@@ -206,9 +193,6 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
                   <span className="text-gray-600 text-xs">—</span>
                 )}
               </td>
-              <td className="p-4 text-gray-300">
-                {group.areaCouncil || <span className="text-gray-600">—</span>}
-              </td>
               <td className="p-4">
                 {group.allowsPages ? (
                   <span className="inline-flex items-center gap-1 text-emerald-400 text-xs">
@@ -222,17 +206,21 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
               </td>
               <td className="p-4">
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase inline-block border ${
-                  group.status === 'ACTIVE'
-                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                    : group.status === 'JOINED'
+                  group.status === 'JOINED'
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                     : group.status === 'JOIN_PENDING'
                     ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                     : group.status === 'BLACKLISTED'
                     ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                    : 'bg-gray-800/40 text-gray-400 border-gray-700/40'
+                    : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
                 }`}>
-                  {group.status}
+                  {group.status === 'JOINED'
+                    ? 'Joined'
+                    : group.status === 'JOIN_PENDING'
+                    ? 'Pending Approval'
+                    : group.status === 'BLACKLISTED'
+                    ? 'Blacklisted'
+                    : 'Not Joined'}
                 </span>
               </td>
               <td className="p-4 text-gray-400 text-xs max-w-[200px]" title={group.notes || ''}>
@@ -262,7 +250,7 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
               </td>
               <td className="p-4 text-right">
                 <div className="flex items-center justify-end gap-1.5">
-                  {group.status === 'ACTIVE' && (
+                  {(group.status === 'NOT_JOINED' || group.status === 'ACTIVE') && (
                     <button
                       onClick={() => handleJoin(group.id)}
                       disabled={isPending}

@@ -8,6 +8,7 @@ interface PostResult {
   status: 'PUBLISHED' | 'MODERATION_PENDING' | 'FAILED';
   message: string;
   screenshotPath?: string;
+  allowsPages?: boolean;
 }
 
 // Simulates human-like typing with randomized delays and punctuation pauses
@@ -98,9 +99,11 @@ export async function postAsPage(
     // Look for the interact selector button (displays current user/page avatar)
     const identitySelector = page.locator('[aria-label*="Interacting as"], [aria-label*="Choose how to interact"], [aria-label*="Interaction selector"]');
     const hasSelector = await identitySelector.isVisible().catch(() => false);
+    let allowsPagesDetected = false;
 
     if (hasSelector) {
       console.log('Identity selector found. Clicking to switch profile...');
+      allowsPagesDetected = true;
       await identitySelector.click();
       await page.waitForTimeout(2000); // Wait for popup menu to load
 
@@ -180,14 +183,14 @@ export async function postAsPage(
       console.log('Successfully published group post directly.');
       const screenshotPath = await takeScreenshotSafe(page);
       await browser.close();
-      return { success: true, status: 'PUBLISHED', message: 'Post successfully published directly.', screenshotPath };
+      return { success: true, status: 'PUBLISHED', message: 'Post successfully published directly.', screenshotPath, allowsPages: allowsPagesDetected };
     }
 
     if (result === 'moderation') {
       console.log('Post submitted successfully. Awaiting admin moderation approval.');
       const screenshotPath = await takeScreenshotSafe(page);
       await browser.close();
-      return { success: true, status: 'MODERATION_PENDING', message: 'Post submitted to admin queue.', screenshotPath };
+      return { success: true, status: 'MODERATION_PENDING', message: 'Post submitted to admin queue.', screenshotPath, allowsPages: allowsPagesDetected };
     }
 
     console.log('Post submission completed (verification timeout). Checking feed URL...');
@@ -198,6 +201,7 @@ export async function postAsPage(
       status: 'PUBLISHED',
       message: 'Post submitted. Check group feed directly to confirm execution.',
       screenshotPath,
+      allowsPages: allowsPagesDetected,
     };
 
   } catch (err: any) {

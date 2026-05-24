@@ -164,7 +164,7 @@ export async function discoverGroups(
             url: raw.url,
             membersCount,
             dailyPosts,
-            status: 'ACTIVE',
+            status: 'NOT_JOINED',
           },
         });
 

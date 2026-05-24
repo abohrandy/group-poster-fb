@@ -40,10 +40,8 @@ model FacebookGroup {
   url          String      @unique
   membersCount Int         @default(0)
   dailyPosts   Int         @default(0)
-  areaCouncil  String?
   allowsPages  Boolean     @default(false)
-  status       String      @default("ACTIVE") // ACTIVE, ARCHIVED, JOIN_PENDING, JOINED, BLACKLISTED
-  category     String?
+  status       String      @default("NOT_JOINED") // NOT_JOINED, JOIN_PENDING, JOINED, BLACKLISTED
   notes        String?
   posts        GroupPost[]
   createdAt    DateTime    @default(now())

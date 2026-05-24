@@ -23,25 +23,14 @@ export default async function GroupsPage({
   const resolvedSearchParams = await searchParams;
 
   const search = resolvedSearchParams.search || '';
-  const category = resolvedSearchParams.category || '';
   const status = resolvedSearchParams.status || '';
   const allowsPagesParam = resolvedSearchParams.allowsPages;
 
   let groups: any[] = [];
-  let categories: string[] = [];
-  let statuses: string[] = ['ACTIVE', 'ARCHIVED', 'BLACKLISTED'];
+  let statuses: string[] = ['NOT_JOINED', 'JOIN_PENDING', 'JOINED', 'BLACKLISTED'];
 
   if (connected) {
     try {
-      // Get unique categories for filter
-      const categoryResult = await prisma.facebookGroup.findMany({
-        select: { category: true },
-        distinct: ['category'],
-      });
-      categories = categoryResult
-        .map((r) => r.category)
-        .filter((cat): cat is string => !!cat);
-
       // Build Prisma Query filters
       const whereClause: any = {};
 
@@ -50,10 +39,6 @@ export default async function GroupsPage({
           { name: { contains: search, mode: 'insensitive' } },
           { url: { contains: search, mode: 'insensitive' } },
         ];
-      }
-
-      if (category) {
-        whereClause.category = category;
       }
 
       if (status) {
@@ -82,10 +67,8 @@ export default async function GroupsPage({
         url: 'https://facebook.com/groups/londonmarketing',
         membersCount: 12500,
         dailyPosts: 8,
-        areaCouncil: 'London',
         allowsPages: true,
-        status: 'ACTIVE',
-        category: 'Marketing',
+        status: 'JOINED',
         notes: 'Very active group, great for testing post interactions.',
         createdAt: new Date(),
       },
@@ -95,10 +78,8 @@ export default async function GroupsPage({
         url: 'https://facebook.com/groups/uktechstartups',
         membersCount: 8400,
         dailyPosts: 3,
-        areaCouncil: 'United Kingdom',
         allowsPages: false,
-        status: 'ACTIVE',
-        category: 'Technology',
+        status: 'NOT_JOINED',
         notes: 'Developers community. Restricted to personal user profiles only.',
         createdAt: new Date(Date.now() - 3600000),
       },
@@ -108,11 +89,9 @@ export default async function GroupsPage({
         url: 'https://facebook.com/groups/londonrealestate',
         membersCount: 4200,
         dailyPosts: 0,
-        areaCouncil: 'Greater London',
         allowsPages: true,
-        status: 'ARCHIVED',
-        category: 'Real Estate',
-        notes: 'Archived tracking. High levels of spam.',
+        status: 'JOIN_PENDING',
+        notes: 'Join request pending approval. High levels of spam.',
         createdAt: new Date(Date.now() - 7200000),
       },
     ];
@@ -120,14 +99,11 @@ export default async function GroupsPage({
     // Filter mock groups locally for simulation
     groups = mockGroups.filter((g) => {
       if (search && !g.name.toLowerCase().includes(search.toLowerCase()) && !g.url.toLowerCase().includes(search.toLowerCase())) return false;
-      if (category && g.category !== category) return false;
       if (status && g.status !== status) return false;
       if (allowsPagesParam === 'true' && !g.allowsPages) return false;
       if (allowsPagesParam === 'false' && g.allowsPages) return false;
       return true;
     });
-
-    categories = ['Marketing', 'Technology', 'Real Estate'];
   }
 
   return (
@@ -162,7 +138,7 @@ export default async function GroupsPage({
       <AutomatedSearchForm />
 
       {/* Filter panel */}
-      <GroupFilters categories={categories} statuses={statuses} />
+      <GroupFilters statuses={statuses} />
 
       {/* List Table */}
       <GroupsTable groups={groups} facebookPageName={session?.user?.facebookPageName || "Mayor's Page"} />

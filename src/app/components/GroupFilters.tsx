@@ -5,11 +5,10 @@ import { useTransition } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 
 interface GroupFiltersProps {
-  categories: string[];
   statuses: string[];
 }
 
-export default function GroupFilters({ categories, statuses }: GroupFiltersProps) {
+export default function GroupFilters({ statuses }: GroupFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -25,6 +24,16 @@ export default function GroupFilters({ categories, statuses }: GroupFiltersProps
     startTransition(() => {
       router.push(`/dashboard/groups?${params.toString()}`);
     });
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'NOT_JOINED': return 'Not Joined';
+      case 'JOIN_PENDING': return 'Pending Approval';
+      case 'JOINED': return 'Joined';
+      case 'BLACKLISTED': return 'Blacklisted';
+      default: return status;
+    }
   };
 
   return (
@@ -43,20 +52,6 @@ export default function GroupFilters({ categories, statuses }: GroupFiltersProps
         />
       </div>
 
-      {/* Category Filter */}
-      <div className="relative min-w-[150px]">
-        <select
-          defaultValue={searchParams.get('category') || ''}
-          onChange={(e) => handleFilterChange('category', e.target.value)}
-          className="w-full px-4 py-2 rounded-lg border border-gray-800 bg-gray-950/50 text-white focus:outline-none focus:border-indigo-500 transition-colors text-sm cursor-pointer"
-        >
-          <option value="">All Categories</option>
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
-        </select>
-      </div>
-
       {/* Status Filter */}
       <div className="relative min-w-[150px]">
         <select
@@ -66,7 +61,7 @@ export default function GroupFilters({ categories, statuses }: GroupFiltersProps
         >
           <option value="">All Statuses</option>
           {statuses.map((status) => (
-            <option key={status} value={status}>{status}</option>
+            <option key={status} value={status}>{getStatusLabel(status)}</option>
           ))}
         </select>
       </div>
