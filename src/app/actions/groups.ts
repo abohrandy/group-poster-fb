@@ -304,5 +304,34 @@ export async function createGroupPostAction(
   }
 }
 
+export async function updateGroupStatusAction(groupId: string, status: string): Promise<{ error?: string; success?: string }> {
+  const session = await validateSession();
+  if (!session) {
+    return { error: 'Unauthorized: Session expired or invalid.' };
+  }
 
+  const { connected } = await checkDatabaseConnection();
+  if (!connected) {
+    return { error: 'Database is offline.' };
+  }
 
+  try {
+    const group = await prisma.facebookGroup.update({
+      where: { id: groupId },
+      data: { status },
+    });
+
+    await prisma.systemLog.create({
+      data: {
+        action: 'GROUP_STATUS_UPDATED',
+        details: `Manually updated status of: ${group.name} to ${status}`,
+      },
+    });
+
+    revalidatePath('/dashboard/groups');
+    return { success: `Successfully updated status of ${group.name} to ${status}` };
+  } catch (err: any) {
+    console.error('Update group status error:', err);
+    return { error: err.message || 'Failed to update group status.' };
+  }
+}

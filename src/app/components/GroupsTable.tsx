@@ -1,8 +1,8 @@
 'use client';
 
 import { useTransition, useState } from 'react';
-import { deleteGroupAction, joinGroupAutomationAction } from '@/app/actions/groups';
-import { Trash2, Loader2, ExternalLink, ShieldCheck, ShieldAlert, UserPlus, PenSquare, ArrowUpDown, ArrowUp, ArrowDown, Flame, Activity } from 'lucide-react';
+import { deleteGroupAction, joinGroupAutomationAction, updateGroupStatusAction } from '@/app/actions/groups';
+import { Trash2, Loader2, ExternalLink, ShieldCheck, ShieldAlert, UserPlus, UserCheck, UserMinus, PenSquare, ArrowUpDown, ArrowUp, ArrowDown, Flame, Activity } from 'lucide-react';
 import CreatePostForm from './CreatePostForm';
 
 interface Group {
@@ -123,6 +123,18 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
         alert(result.error);
       } else if (result?.success) {
         alert(result.success);
+      }
+      setActiveId(null);
+    });
+  };
+
+  const handleStatusToggle = (id: string, currentStatus: string) => {
+    const nextStatus = currentStatus === 'JOINED' ? 'NOT_JOINED' : 'JOINED';
+    setActiveId(id);
+    startTransition(async () => {
+      const result = await updateGroupStatusAction(id, nextStatus);
+      if (result?.error) {
+        alert(result.error);
       }
       setActiveId(null);
     });
@@ -251,28 +263,48 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
               <td className="p-4 text-right">
                 <div className="flex items-center justify-end gap-1.5">
                   {(group.status === 'NOT_JOINED' || group.status === 'ACTIVE') && (
-                    <button
-                      onClick={() => handleJoin(group.id)}
-                      disabled={isPending}
-                      className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 p-1.5 rounded-lg transition-colors inline-flex items-center justify-center disabled:opacity-50"
-                      title="Automate Group Join"
-                    >
-                      {isPending && activeId === group.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <UserPlus className="h-4 w-4" />
-                      )}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleJoin(group.id)}
+                        disabled={isPending}
+                        className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 p-1.5 rounded-lg transition-colors inline-flex items-center justify-center disabled:opacity-50"
+                        title="Automate Group Join"
+                      >
+                        {isPending && activeId === group.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <UserPlus className="h-4 w-4" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleStatusToggle(group.id, group.status)}
+                        disabled={isPending}
+                        className="text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10 p-1.5 rounded-lg transition-colors inline-flex items-center justify-center disabled:opacity-50"
+                        title="Manually Mark as Joined"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                      </button>
+                    </>
                   )}
                   {group.status === 'JOINED' && (
-                    <button
-                      onClick={() => openPostModal(group.id, group.name)}
-                      disabled={isPending}
-                      className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 p-1.5 rounded-lg transition-colors inline-flex items-center justify-center disabled:opacity-50"
-                      title="Write Page Post"
-                    >
-                      <PenSquare className="h-4 w-4" />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => openPostModal(group.id, group.name)}
+                        disabled={isPending}
+                        className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 p-1.5 rounded-lg transition-colors inline-flex items-center justify-center disabled:opacity-50"
+                        title="Write Page Post"
+                      >
+                        <PenSquare className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleStatusToggle(group.id, group.status)}
+                        disabled={isPending}
+                        className="text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 p-1.5 rounded-lg transition-colors inline-flex items-center justify-center disabled:opacity-50"
+                        title="Manually Mark as Not Joined"
+                      >
+                        <UserMinus className="h-4 w-4" />
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => handleDelete(group.id)}
