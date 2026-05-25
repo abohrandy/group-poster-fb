@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react';
 import { runDiscoveryAction } from '@/app/actions/discovery';
-import { Search, Loader2, CheckCircle2, AlertTriangle, Shield, Globe } from 'lucide-react';
+import { Search, Loader2, CheckCircle2, AlertTriangle, Shield, Globe, ChevronDown } from 'lucide-react';
 
 const initialState = {
   error: '',
@@ -61,8 +61,8 @@ export default function AutomatedSearchForm() {
         )}
 
         {/* Inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="sm:col-span-2">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="md:col-span-2">
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Search Keyword *</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
@@ -75,6 +75,23 @@ export default function AutomatedSearchForm() {
                 placeholder="e.g. London Real Estate, Gardening UK"
                 className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm font-sans"
               />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Search Depth</label>
+            <div className="relative">
+              <select
+                name="maxScrolls"
+                defaultValue="3"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white focus:outline-none focus:border-indigo-500 transition-colors text-sm font-sans appearance-none cursor-pointer pr-10"
+              >
+                <option value="3" className="bg-gray-900 text-white">Quick Scan (~30 groups)</option>
+                <option value="10" className="bg-gray-900 text-white">Balanced (~80 groups)</option>
+                <option value="25" className="bg-gray-900 text-white">Deep Scan (~200 groups)</option>
+              </select>
+              <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 pointer-events-none">
+                <ChevronDown className="h-4 w-4" />
+              </span>
             </div>
           </div>
           <div>

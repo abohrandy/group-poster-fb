@@ -13,6 +13,8 @@ export async function runDiscoveryAction(prevState: any, formData: FormData): Pr
 
   const keyword = formData.get('keyword') as string;
   const profileId = (formData.get('profileId') as string) || 'default_profile';
+  const maxScrollsStr = formData.get('maxScrolls') as string;
+  const maxScrolls = parseInt(maxScrollsStr, 10) || 3;
 
   if (!keyword) {
     return { error: 'Search keyword is required.' };
@@ -51,7 +53,7 @@ export async function runDiscoveryAction(prevState: any, formData: FormData): Pr
 
   try {
     const result = await discoverGroups(profileId, keyword, {
-      maxScrolls: 3,
+      maxScrolls,
       headless: true,
     });
 
