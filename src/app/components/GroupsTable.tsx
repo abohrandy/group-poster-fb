@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition, useState } from 'react';
-import { deleteGroupAction, joinGroupAutomationAction, updateGroupStatusAction } from '@/app/actions/groups';
+import { deleteGroupAction, joinGroupAutomationAction, updateGroupStatusAction, deleteGroupsAction } from '@/app/actions/groups';
 import { Trash2, Loader2, ExternalLink, ShieldCheck, ShieldAlert, UserPlus, UserCheck, UserMinus, PenSquare, ArrowUpDown, ArrowUp, ArrowDown, Flame, Activity, Clock, Sparkles } from 'lucide-react';
 import CreatePostForm from './CreatePostForm';
 import CampaignPostModal from './CampaignPostModal';
@@ -31,13 +31,11 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isCampaignOpen, setIsCampaignOpen] = useState(false);
 
-  const joinedGroups = groups.filter((g) => g.status === 'JOINED');
-
   const handleSelectAll = () => {
-    if (selectedIds.length === joinedGroups.length) {
+    if (selectedIds.length === groups.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(joinedGroups.map((g) => g.id));
+      setSelectedIds(groups.map((g) => g.id));
     }
   };
 
@@ -46,6 +44,21 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
+
+  const handleBulkDelete = () => {
+    if (confirm(`Are you sure you want to delete the ${selectedIds.length} selected groups?`)) {
+      startTransition(async () => {
+        const result = await deleteGroupsAction(selectedIds);
+        if (result?.error) {
+          alert(result.error);
+        } else if (result?.success) {
+          setSelectedIds([]);
+        }
+      });
+    }
+  };
+
+  const hasJoinedSelected = groups.some((g) => selectedIds.includes(g.id) && g.status === 'JOINED');
 
   // Post modal states
   const [isPostOpen, setIsPostOpen] = useState(false);
@@ -176,17 +189,17 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
   }
 
   return (
-    <div className="overflow-x-auto border border-gray-800 rounded-xl bg-gray-950/20 backdrop-blur-sm">
+    <div className="overflow-x-auto border border-gray-800 rounded-xl bg-gray-950/20">
       <table className="w-full text-left border-collapse text-sm">
         <thead>
           <tr className="border-b border-gray-800/80 bg-gray-900/30 text-xs font-semibold text-gray-400 uppercase tracking-wider">
             <th className="p-4 w-12 text-center select-none">
               <input
                 type="checkbox"
-                checked={joinedGroups.length > 0 && selectedIds.length === joinedGroups.length}
+                checked={groups.length > 0 && selectedIds.length === groups.length}
                 onChange={handleSelectAll}
                 className="h-4 w-4 rounded border-gray-800 bg-gray-950 text-indigo-600 focus:ring-indigo-500 transition-colors cursor-pointer"
-                title="Select all joined groups"
+                title="Select all groups"
               />
             </th>
             {renderHeader('Group Name & URL', 'name')}
@@ -205,10 +218,9 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
                 <input
                   type="checkbox"
                   checked={selectedIds.includes(group.id)}
-                  disabled={group.status !== 'JOINED'}
                   onChange={() => handleSelectRow(group.id)}
-                  className="h-4 w-4 rounded border-gray-800 bg-gray-950 text-indigo-600 focus:ring-indigo-500 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                  title={group.status === 'JOINED' ? 'Select for campaign' : 'Must join group to post'}
+                  className="h-4 w-4 rounded border-gray-800 bg-gray-950 text-indigo-600 focus:ring-indigo-500 transition-colors cursor-pointer"
+                  title="Select group"
                 />
               </td>
               <td className="p-4">
@@ -367,15 +379,15 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
 
       {/* Floating Bulk Action Bar */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/90 border border-gray-800 shadow-2xl rounded-2xl px-6 py-4 flex items-center justify-between gap-8 z-40 backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/95 border border-gray-800 shadow-2xl rounded-2xl px-6 py-4 flex items-center justify-between gap-8 z-40 backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center gap-3">
             <div className="bg-indigo-500/10 border border-indigo-500/25 rounded-lg p-2 text-indigo-400">
               <Sparkles className="h-4 w-4" />
             </div>
             <div>
-              <div className="text-xs font-bold text-white uppercase tracking-wider">Campaign Ready</div>
+              <div className="text-xs font-bold text-white uppercase tracking-wider">Bulk Actions</div>
               <div className="text-[11px] text-gray-400 font-sans mt-0.5">
-                Selected <span className="text-indigo-400 font-semibold">{selectedIds.length} groups</span> for staggered posting.
+                Selected <span className="text-indigo-400 font-semibold">{selectedIds.length} groups</span>.
               </div>
             </div>
           </div>
@@ -387,11 +399,19 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
               Clear
             </button>
             <button
-              onClick={() => setIsCampaignOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/15"
+              onClick={handleBulkDelete}
+              className="bg-rose-600/10 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-500/20 font-semibold px-4 py-2 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md transition-colors"
             >
-              <Clock className="h-3.5 w-3.5" /> Staggered Post
+              <Trash2 className="h-3.5 w-3.5" /> Delete Selected
             </button>
+            {hasJoinedSelected && (
+              <button
+                onClick={() => setIsCampaignOpen(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/15"
+              >
+                <Clock className="h-3.5 w-3.5" /> Staggered Post
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -409,7 +429,7 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
       {isCampaignOpen && (
         <CampaignPostModal
           selectedGroups={groups
-            .filter((g) => selectedIds.includes(g.id))
+            .filter((g) => selectedIds.includes(g.id) && g.status === 'JOINED')
             .map((g) => ({ id: g.id, name: g.name }))}
           isOpen={isCampaignOpen}
           onClose={() => setIsCampaignOpen(false)}

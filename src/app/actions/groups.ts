@@ -425,3 +425,38 @@ export async function createCampaignAction(
     return { error: err.message || 'Failed to create campaign schedule.' };
   }
 }
+
+export async function deleteGroupsAction(groupIds: string[]): Promise<{ error?: string; success?: string }> {
+  const session = await validateSession();
+  if (!session) {
+    return { error: 'Unauthorized: Session expired or invalid.' };
+  }
+
+  if (!groupIds || groupIds.length === 0) {
+    return { error: 'No groups selected for deletion.' };
+  }
+
+  const { connected } = await checkDatabaseConnection();
+  if (!connected) {
+    return { error: 'Database is offline. Unable to delete groups.' };
+  }
+
+  try {
+    const result = await prisma.facebookGroup.deleteMany({
+      where: { id: { in: groupIds } },
+    });
+
+    await prisma.systemLog.create({
+      data: {
+        action: 'GROUPS_BULK_DELETED',
+        details: `Deleted ${result.count} Facebook groups via bulk action.`,
+      },
+    });
+
+    revalidatePath('/dashboard/groups');
+    return { success: `Successfully deleted ${result.count} groups.` };
+  } catch (err: any) {
+    console.error('Bulk delete groups error:', err);
+    return { error: err.message || 'Failed to delete groups.' };
+  }
+}
