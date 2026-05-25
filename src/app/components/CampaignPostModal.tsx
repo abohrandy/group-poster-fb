@@ -186,11 +186,11 @@ export default function CampaignPostModal({
               <textarea
                 name="content"
                 required
-                rows={4}
+                rows={6}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Write your primary message here... The AI anti-duplicate system will rewrite it into multiple variations and rotate them across scheduled posts."
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm resize-none"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm resize-y overflow-y-auto min-h-[120px]"
               />
             </div>
           </div>
@@ -213,7 +213,7 @@ export default function CampaignPostModal({
                 {aiVariations.map((v, index) => (
                   <div
                     key={index}
-                    className="p-3 rounded-lg border border-gray-800/80 bg-gray-900/40 text-[11px] leading-relaxed transition-all duration-300"
+                    className="p-3 rounded-lg border border-gray-800/80 bg-gray-900/40 text-[11px] leading-relaxed transition-all duration-300 max-h-40 overflow-y-auto"
                   >
                     <div className="mb-1">
                       <span

@@ -145,11 +145,11 @@ export default function CreatePostForm({ groupId, groupName, isOpen, onClose, fa
               <textarea
                 name="content"
                 required
-                rows={4}
+                rows={6}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Write your group post update here... click 'Generate AI Variations' to rewrite the post in diverse tones and bypass duplicates."
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm resize-none"
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-800 bg-gray-950/50 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors text-sm resize-y overflow-y-auto min-h-[120px]"
               />
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function CreatePostForm({ groupId, groupName, isOpen, onClose, fa
                   <div
                     key={index}
                     onClick={() => selectVariation(v.caption)}
-                    className="p-3 rounded-lg border border-gray-800 bg-gray-900/50 hover:border-indigo-500/30 hover:bg-indigo-500/5 cursor-pointer text-xs transition-all duration-300"
+                    className="p-3 rounded-lg border border-gray-800 bg-gray-900/50 hover:border-indigo-500/30 hover:bg-indigo-500/5 cursor-pointer text-xs transition-all duration-300 max-h-32 overflow-y-auto"
                   >
                     <div className="flex justify-between items-center mb-1">
                       <span className={`px-2 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase border ${
