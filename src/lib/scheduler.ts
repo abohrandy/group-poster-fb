@@ -140,8 +140,8 @@ export function startScheduler() {
   // Run once immediately on startup
   processQueue().catch((err) => console.error('[Scheduler] Initial processQueue run error:', err));
 
-  // Set interval to poll every 30 seconds
+  // Set interval to poll every 2 minutes
   globalForScheduler.schedulerIntervalId = setInterval(() => {
     processQueue().catch((err) => console.error('[Scheduler] Periodic processQueue error:', err));
-  }, 30000);
+  }, 120000);
 }
