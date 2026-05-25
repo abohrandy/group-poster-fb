@@ -54,11 +54,13 @@ model GroupPost {
   group          FacebookGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   content        String
   imagePath      String?
-  status         String        @default("PENDING") // PUBLISHED, FAILED, MODERATION_PENDING
+  status         String        @default("PENDING") // PENDING, PROCESSING, PUBLISHED, FAILED, MODERATION_PENDING
   errorDetails   String?
   screenshotPath String?       // Web-accessible path like /screenshots/xxxx.png
   likesCount     Int           @default(0)
   commentsCount  Int           @default(0)
+  postedAs       String        @default("Mayor's Page")
+  scheduledAt    DateTime      @default(now())
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 }

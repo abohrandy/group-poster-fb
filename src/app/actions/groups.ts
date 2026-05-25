@@ -3,6 +3,7 @@
 import prisma, { checkDatabaseConnection } from '@/lib/db';
 import { validateSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { generateCaptionVariations } from '@/lib/ai';
 import os from 'os';
 
 // Detect whether a headed browser can be launched
@@ -333,5 +334,94 @@ export async function updateGroupStatusAction(groupId: string, status: string): 
   } catch (err: any) {
     console.error('Update group status error:', err);
     return { error: err.message || 'Failed to update group status.' };
+  }
+}
+
+export async function createCampaignAction(
+  groupIds: string[],
+  baseContent: string,
+  delayMinutes: number,
+  rotateVariations: boolean,
+  imagePath?: string
+): Promise<{ error?: string; success?: string }> {
+  const session = await validateSession();
+  if (!session) {
+    return { error: 'Unauthorized: Session expired or invalid.' };
+  }
+
+  if (!groupIds || groupIds.length === 0) {
+    return { error: 'No groups selected for the campaign.' };
+  }
+
+  if (!baseContent) {
+    return { error: 'Post content body is required.' };
+  }
+
+  const { connected } = await checkDatabaseConnection();
+
+  // Setup text variations
+  let textOptions = [baseContent];
+  if (rotateVariations && connected) {
+    try {
+      const variations = await generateCaptionVariations(baseContent);
+      if (variations && variations.length > 0) {
+        textOptions = variations.map((v) => v.caption);
+      }
+    } catch (aiErr) {
+      console.warn('AI variation generation failed during campaign creation, falling back to base content:', aiErr);
+    }
+  }
+
+  if (!connected) {
+    // Simulated Campaign Setup for offline mode
+    console.log(`Running simulated campaign scheduler for ${groupIds.length} groups with ${delayMinutes}m delay`);
+    return {
+      success: `Campaign successfully created (SIMULATION MODE). ${groupIds.length} posts queued with ${delayMinutes}m intervals.`,
+    };
+  }
+
+  try {
+    const postedAs = session.user.facebookPageName || "Mayor's Page";
+    
+    // Fetch all groups to ensure they exist
+    const targetGroups = await prisma.facebookGroup.findMany({
+      where: { id: { in: groupIds } }
+    });
+
+    const now = Date.now();
+    const postsData = targetGroups.map((group, index) => {
+      const scheduledAt = new Date(now + index * delayMinutes * 60 * 1000);
+      const content = textOptions[index % textOptions.length];
+      return {
+        groupId: group.id,
+        content,
+        imagePath: imagePath || null,
+        status: 'PENDING',
+        scheduledAt,
+        postedAs,
+      };
+    });
+
+    // Create all the scheduled posts
+    await prisma.groupPost.createMany({
+      data: postsData,
+    });
+
+    await prisma.systemLog.create({
+      data: {
+        action: 'CAMPAIGN_CREATED',
+        details: `Created post campaign for ${targetGroups.length} groups with ${delayMinutes} min delay. Total posts queued: ${postsData.length}`,
+      },
+    });
+
+    revalidatePath('/dashboard/groups');
+    revalidatePath('/dashboard/analytics');
+
+    return {
+      success: `Campaign created successfully! ${postsData.length} posts have been scheduled with a ${delayMinutes}-minute delay.`,
+    };
+  } catch (err: any) {
+    console.error('Campaign creation action error:', err);
+    return { error: err.message || 'Failed to create campaign schedule.' };
   }
 }
