@@ -120,9 +120,8 @@ export async function postAsPage(
       console.warn('No identity selector found on page. Facebook page interaction may not be allowed in this group.');
     }
 
-    // 3. Locate Post Creation Fields
     console.log('Locating create post block...');
-    const createPostTrigger = page.locator('text="Write something...", text="Create a public post...", [role="button"]:has-text("Write something..."), [role="button"]:has-text("Create a public post...")');
+    const createPostTrigger = page.locator('text="Write something...", text="Create a public post...", text="Create a post...", text="Write a post...", [role="button"]:has-text("Write something..."), [role="button"]:has-text("Create a public post..."), [role="button"]:has-text("Create a post..."), [role="button"]:has-text("Write a post...")');
     if (!(await createPostTrigger.isVisible().catch(() => false))) {
       const screenshotPath = await takeScreenshotSafe(page);
       await browser.close();
