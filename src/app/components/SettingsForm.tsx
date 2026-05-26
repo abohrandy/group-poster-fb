@@ -339,12 +339,19 @@ export default function SettingsForm({ initialName, initialFacebookPageName, ema
             <div className="p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 flex gap-3 items-start">
               <Upload className="h-4.5 w-4.5 text-indigo-400 shrink-0 mt-0.5" />
               <div className="text-xs text-indigo-300/80 leading-relaxed">
-                <span className="font-semibold text-indigo-300 block mb-1">Headed Local Login Bypass</span>
-                1. Open a local terminal in the project directory: `c:\Work\SHRC\Faecbook App - Copy`.
-                <br />
-                2. Run `node scripts/login-local.js` to open a headed browser, log in manually, and save the session.
-                <br />
-                3. Select the generated `automation/cookies/default_profile.json` file below to upload and activate it.
+                <span className="font-semibold text-indigo-300 block mb-1">Manual Cookies Update Instructions</span>
+                <strong className="text-indigo-200">Method A (Browser Extension - Easiest):</strong>
+                <ol className="list-decimal pl-4 space-y-1 mt-1 mb-3 text-indigo-300/70">
+                  <li>Log in to Facebook on your personal computer's browser.</li>
+                  <li>Use an extension like <em className="text-indigo-300 font-semibold font-sans">EditThisCookie</em> to export your cookies as JSON.</li>
+                  <li>Select the exported JSON file or copy-paste the text inside it below.</li>
+                </ol>
+                <strong className="text-indigo-200 block">Method B (Headed Local Script):</strong>
+                <ol className="list-decimal pl-4 space-y-1 mt-1 text-indigo-300/70">
+                  <li>Open a local terminal in your project directory: <code className="bg-gray-950 px-1 py-0.5 rounded text-[10px] text-gray-400 font-mono">c:\Work\SHRC\Faecbook App - Copy</code>.</li>
+                  <li>Run <code className="bg-gray-950 px-1 py-0.5 rounded text-[10px] text-gray-400 font-mono">node scripts/login-local.js</code> to log in headed on your computer and generate the session cookies.</li>
+                  <li>Select the generated <code className="bg-gray-950 px-1 py-0.5 rounded text-[10px] text-gray-400 font-mono">automation/cookies/default_profile.json</code> file below.</li>
+                </ol>
               </div>
             </div>
 

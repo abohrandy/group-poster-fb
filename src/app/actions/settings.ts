@@ -137,12 +137,16 @@ export async function uploadFacebookCookiesAction(
 
   try {
     const parsed = JSON.parse(cookiesJson);
-    if (!parsed.cookies || !Array.isArray(parsed.cookies)) {
-      return { error: 'Invalid cookie structure. The JSON must contain a cookies array.' };
+    let stateJson = parsed;
+
+    if (Array.isArray(parsed)) {
+      stateJson = { cookies: parsed, origins: [] };
+    } else if (!parsed.cookies || !Array.isArray(parsed.cookies)) {
+      return { error: 'Invalid cookie structure. The JSON must contain a cookies array or be a raw array of cookies.' };
     }
 
     const { saveSessionState } = await import('../../../automation/session');
-    await saveSessionState(profileId, parsed);
+    await saveSessionState(profileId, stateJson);
 
     await prisma.systemLog.create({
       data: {
