@@ -51,9 +51,43 @@ export async function hasSessionState(profileId: string): Promise<boolean> {
   return fs.existsSync(filePath);
 }
 
+function sanitizeState(state: any): any {
+  if (!state || !Array.isArray(state.cookies)) {
+    return state;
+  }
+
+  const cleanCookies = state.cookies.map((cookie: any) => {
+    let sameSite = cookie.sameSite;
+    if (typeof sameSite === 'string') {
+      const lower = sameSite.toLowerCase();
+      if (lower === 'no_restriction' || lower === 'none') {
+        sameSite = 'None';
+      } else if (lower === 'lax') {
+        sameSite = 'Lax';
+      } else if (lower === 'strict') {
+        sameSite = 'Strict';
+      } else {
+        sameSite = 'Lax';
+      }
+    } else {
+      sameSite = 'Lax';
+    }
+    return {
+      ...cookie,
+      sameSite,
+    };
+  });
+
+  return {
+    ...state,
+    cookies: cleanCookies,
+  };
+}
+
 export async function saveSessionState(profileId: string, state: any): Promise<void> {
+  const sanitized = sanitizeState(state);
   const filePath = getCookiesPath(profileId);
-  const jsonString = JSON.stringify(state, null, 2);
+  const jsonString = JSON.stringify(sanitized, null, 2);
   
   // 1. Save to local disk
   await fs.promises.writeFile(filePath, jsonString, 'utf-8');
@@ -84,7 +118,8 @@ export async function loadSessionState(profileId: string): Promise<any | null> {
   }
   try {
     const data = await fs.promises.readFile(filePath, 'utf-8');
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    return sanitizeState(parsed);
   } catch (err) {
     console.error(`Failed to parse session state for profile ${profileId}:`, err);
     return null;
