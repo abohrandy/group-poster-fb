@@ -460,3 +460,105 @@ export async function deleteGroupsAction(groupIds: string[]): Promise<{ error?: 
     return { error: err.message || 'Failed to delete groups.' };
   }
 }
+
+export async function scanGroupPostsAction(groupId: string): Promise<{ error?: string; success?: string; postsCount?: number }> {
+  const session = await validateSession();
+  if (!session) {
+    return { error: 'Unauthorized: Session expired or invalid.' };
+  }
+
+  const { connected } = await checkDatabaseConnection();
+
+  if (!connected) {
+    // Simulated scan for offline mode
+    console.log(`Running simulated post scan for group ID: "${groupId}"`);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    return {
+      success: 'Scan completed successfully (SIMULATED). No new manual posts found.',
+      postsCount: 0,
+    };
+  }
+
+  try {
+    const group = await prisma.facebookGroup.findUnique({
+      where: { id: groupId },
+    });
+
+    if (!group) {
+      return { error: 'Group not found.' };
+    }
+
+    const { scanGroupPosts } = await import('../../../automation/scan');
+    const useHeaded = canRunHeaded();
+    console.log(`Scan automation: headless=${!useHeaded} (platform=${os.platform()}, display=${process.env.DISPLAY || 'none'})`);
+    
+    const result = await scanGroupPosts('default_profile', group.url, 'Yerima', { headless: !useHeaded });
+
+    if (!result.success || !result.posts) {
+      return { error: result.message };
+    }
+
+    let newPostsCount = 0;
+    for (const post of result.posts) {
+      // Check if a post with similar content already exists
+      const existing = await prisma.groupPost.findFirst({
+        where: {
+          groupId,
+          content: post.content,
+        },
+      });
+
+      if (!existing) {
+        await prisma.groupPost.create({
+          data: {
+            groupId,
+            content: post.content,
+            status: 'PUBLISHED',
+            postedAs: post.author,
+            likesCount: post.likesCount,
+            commentsCount: post.commentsCount,
+            scheduledAt: new Date(),
+            createdAt: new Date(),
+          },
+        });
+        newPostsCount++;
+      } else {
+        // Update engagement metrics if already exists
+        await prisma.groupPost.update({
+          where: { id: existing.id },
+          data: {
+            likesCount: post.likesCount,
+            commentsCount: post.commentsCount,
+          },
+        });
+      }
+    }
+
+    const scanNotes = `Last scan on ${new Date().toLocaleString()}: found ${result.posts.length} posts by campaign accounts (${newPostsCount} new).`;
+    
+    await prisma.facebookGroup.update({
+      where: { id: groupId },
+      data: {
+        notes: scanNotes.substring(0, 500),
+      },
+    });
+
+    await prisma.systemLog.create({
+      data: {
+        action: 'GROUP_POSTS_SCANNED',
+        details: `Scanned group ${group.name}. Found ${result.posts.length} matching posts (${newPostsCount} new saved).`,
+      },
+    });
+
+    revalidatePath('/dashboard/groups');
+    revalidatePath('/dashboard/analytics');
+
+    return {
+      success: `Scan complete! Scraped ${result.posts.length} posts (${newPostsCount} new imported to database).`,
+      postsCount: result.posts.length,
+    };
+  } catch (err: any) {
+    console.error('Scan group posts action error:', err);
+    return { error: err.message || 'Posts scanning runner failed.' };
+  }
+}

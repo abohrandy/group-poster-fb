@@ -1,8 +1,8 @@
 'use client';
 
 import { useTransition, useState } from 'react';
-import { deleteGroupAction, joinGroupAutomationAction, updateGroupStatusAction, deleteGroupsAction } from '@/app/actions/groups';
-import { Trash2, Loader2, ExternalLink, ShieldCheck, ShieldAlert, UserPlus, UserCheck, UserMinus, PenSquare, ArrowUpDown, ArrowUp, ArrowDown, Flame, Activity, Clock, Sparkles } from 'lucide-react';
+import { deleteGroupAction, joinGroupAutomationAction, updateGroupStatusAction, deleteGroupsAction, scanGroupPostsAction } from '@/app/actions/groups';
+import { Trash2, Loader2, ExternalLink, ShieldCheck, ShieldAlert, UserPlus, UserCheck, UserMinus, PenSquare, ArrowUpDown, ArrowUp, ArrowDown, Flame, Activity, Clock, Sparkles, Search } from 'lucide-react';
 import CreatePostForm from './CreatePostForm';
 import CampaignPostModal from './CampaignPostModal';
 
@@ -169,6 +169,19 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
       const result = await updateGroupStatusAction(id, nextStatus);
       if (result?.error) {
         alert(result.error);
+      }
+      setActiveId(null);
+    });
+  };
+
+  const handleScan = (id: string) => {
+    setActiveId(id);
+    startTransition(async () => {
+      const result = await scanGroupPostsAction(id);
+      if (result?.error) {
+        alert(result.error);
+      } else if (result?.success) {
+        alert(result.success);
       }
       setActiveId(null);
     });
@@ -347,6 +360,18 @@ export default function GroupsTable({ groups, facebookPageName }: GroupsTablePro
                         title="Write Page Post"
                       >
                         <PenSquare className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleScan(group.id)}
+                        disabled={isPending}
+                        className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 p-1.5 rounded-lg transition-colors inline-flex items-center justify-center disabled:opacity-50"
+                        title="Scan Group for Manual Posts"
+                      >
+                        {isPending && activeId === group.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Search className="h-4 w-4" />
+                        )}
                       </button>
                       <button
                         onClick={() => handleStatusToggle(group.id, group.status)}
